@@ -13,7 +13,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import com.example.ui.AppViewModel
+import com.example.ui.LocalAppStrings
+import com.example.ui.englishStrings
+import com.example.ui.hindiStrings
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.MainScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -25,22 +30,35 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val language = viewModel.currentLanguage.collectAsState().value
+            val strings = if (language == "hi") hindiStrings else englishStrings
+            val error = viewModel.errorMessage.collectAsState().value
+
+            LaunchedEffect(error) {
+                if (error != null) {
+                    Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+                    viewModel.clearError()
+                }
+            }
+
             MyApplicationTheme {
-                val currentUser = viewModel.currentUser.collectAsState().value
-                
-                Box(modifier = Modifier.fillMaxSize()) {
-                    if (currentUser == null) {
-                        LoginScreen(viewModel)
-                    } else {
-                        MainScreen(
-                            viewModel = viewModel,
-                            onCheckout = {
-                                val total = viewModel.cartTotal.value
-                                if (total > 0) {
-                                    launchUpiPayment(this@MainActivity, total)
+                CompositionLocalProvider(LocalAppStrings provides strings) {
+                    val currentUser = viewModel.currentUser.collectAsState().value
+                    
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (currentUser == null) {
+                            LoginScreen(viewModel)
+                        } else {
+                            MainScreen(
+                                viewModel = viewModel,
+                                onCheckout = {
+                                    val total = viewModel.cartTotal.value
+                                    if (total > 0) {
+                                        launchUpiPayment(this@MainActivity, total)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -66,12 +84,12 @@ class MainActivity : ComponentActivity() {
         
         val chooser = Intent.createChooser(upiPayIntent, "Pay with")
         
-        if (chooser.resolveActivity(context.packageManager) != null) {
+        try {
             context.startActivity(chooser)
             // Note: After payment, we would ideally start a result launcher and clear cart.
             // For now, we simulate success message
             Toast.makeText(context, "UPI intent launched for Shahnawaz (+919616169461)", Toast.LENGTH_LONG).show()
-        } else {
+        } catch (e: Exception) {
             Toast.makeText(context, "No UPI app found on device, clearing cart anyway", Toast.LENGTH_LONG).show()
             viewModel.clearCart()
         }

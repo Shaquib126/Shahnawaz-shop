@@ -13,11 +13,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.AppViewModel
+import com.example.ui.LocalAppStrings
 
 @Composable
 fun AdminScreen(viewModel: AppViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
     val products by viewModel.allProducts.collectAsStateWithLifecycle()
+    val strings = LocalAppStrings.current
 
     Scaffold(
         floatingActionButton = {
@@ -27,14 +29,14 @@ fun AdminScreen(viewModel: AppViewModel) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-            Text("Inventory Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(strings.inventoryMgmt, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(products) { product ->
                     ListItem(
                         headlineContent = { Text(product.name) },
-                        supportingContent = { Text("Stock: ${product.stockQuantity} • ₹${product.price} • ${product.category}") },
+                        supportingContent = { Text("${strings.stock}: ${product.stockQuantity} • ₹${product.price} • ${product.category}") },
                         trailingContent = {
                             IconButton(onClick = { viewModel.deleteProduct(product.id) }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete")
@@ -49,6 +51,7 @@ fun AdminScreen(viewModel: AppViewModel) {
 
     if (showAddDialog) {
         AddProductDialog(
+            viewModel = viewModel,
             onDismiss = { showAddDialog = false },
             onAdd = { name, category, desc, price, stock ->
                 viewModel.addProduct(name, category, desc, price, stock)
@@ -59,37 +62,44 @@ fun AdminScreen(viewModel: AppViewModel) {
 }
 
 @Composable
-fun AddProductDialog(onDismiss: () -> Unit, onAdd: (String, String, String, Double, Int) -> Unit) {
+fun AddProductDialog(viewModel: AppViewModel, onDismiss: () -> Unit, onAdd: (String, String, String, Double, Int) -> Unit) {
     var name by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Feed") }
     var desc by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
+    val strings = LocalAppStrings.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Product") },
+        title = { Text(strings.addProduct) },
         text = {
             Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(strings.name) })
                 Spacer(modifier = Modifier.height(8.dp))
                 // Simple category dropdown logic simulated with buttons or just a field for now
-                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category (Feed/Medicine/Appetite)") })
+                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text(strings.categoryHint) })
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") })
+                OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text(strings.desc) })
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price") })
+                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text(strings.price) })
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = stock, onValueChange = { stock = it }, label = { Text("Stock") })
+                OutlinedTextField(value = stock, onValueChange = { stock = it }, label = { Text(strings.stock) })
             }
         },
         confirmButton = {
             Button(onClick = {
-                onAdd(name, category, desc, price.toDoubleOrNull() ?: 0.0, stock.toIntOrNull() ?: 0)
-            }) { Text("Add") }
+                val p = price.toDoubleOrNull()
+                val s = stock.toIntOrNull()
+                if (name.isBlank() || p == null || s == null) {
+                    viewModel.showError(strings.errorInvalidInput)
+                } else {
+                    onAdd(name, category, desc, p, s)
+                }
+            }) { Text(strings.addBtn) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(strings.cancel) }
         }
     )
 }

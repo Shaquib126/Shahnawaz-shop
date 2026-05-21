@@ -57,6 +57,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentUser = MutableStateFlow<String?>(null) // null = logged out, "admin" = shop owner, "user" = customer
     val currentUser = _currentUser.asStateFlow()
 
+    // Language State
+    private val _currentLanguage = MutableStateFlow("en")
+    val currentLanguage = _currentLanguage.asStateFlow()
+
+    fun toggleLanguage() {
+        _currentLanguage.value = if (_currentLanguage.value == "en") "hi" else "en"
+    }
+
+    // Error State
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
+    fun showError(msg: String) {
+        _errorMessage.value = msg
+    }
+
     init {
         // Pre-populate some dummy products if empty.
         viewModelScope.launch {
